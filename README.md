@@ -1,4 +1,3 @@
-
 lapis.helper.javascript
 =======================
 
@@ -27,10 +26,10 @@ class MyApp extends lapis.Application
     -- Load helpers that cache things to be rendered in the layout
     @JsHelper = js!
 
-  -- Routes:
-  [index: "/"]: =>
+  -- Routes
+  "/": =>
     @page_title = "A javascript helper for lapis"
-    render: true
+    render: "index"
 
 ```
 
