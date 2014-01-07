@@ -1,8 +1,8 @@
-lapis.helper.javascript
-=======================
 
-Provide javascript snippets from anywhere within a lapis request to be 
-included within the page's layout.
+require "lapis.helper.javascript"
+=================================
+
+Register JavaScript blocks at multiple locations within a Lapis request to be rendered in a page's layout.
 
 ## Usage ##
 
