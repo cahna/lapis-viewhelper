@@ -1,8 +1,8 @@
 
-require "lapis.helper.javascript"
+require "lapis.helper.view"
 =================================
 
-Register JavaScript blocks at multiple locations within a Lapis request to be rendered in a page's layout.
+Register JavaScript & CSS blocks at multiple locations within a Lapis request to be rendered in a page's layout.
 
 ## Usage ##
 
@@ -13,7 +13,7 @@ within your application.
 
 ```moonscript
 lapis = require "lapis"
-js = require "lapis.helper.javascript"
+viewh = require "lapis.helper.view"
 
 import generate_token from require "lapis.csrf"
 
@@ -24,7 +24,7 @@ class MyApp extends lapis.Application
     @csrf_token = generate_token @
 
     -- Load helpers that cache things to be rendered in the layout
-    @JsHelper = js!
+    @ViewHelper = viewh!
 
   -- Routes
   "/": =>
@@ -33,7 +33,7 @@ class MyApp extends lapis.Application
 
 ```
 
-__views/index.moon__: Use the `@JsHelper` instantiated above to register some js for the page's layout.
+__views/index.moon__: Use the `@ViewHelper` instantiated above to register some js/css for the page's layout.
 
 ```moonscript
 import Widget from require "lapis.html"
@@ -52,8 +52,13 @@ class Index extends Widget
             fieldset class: "col-sm-12", ->
               -- ...The form goes here...
 
-    -- Register the needed javascript to be included in the layout (this example implements the jquery.validate library)
-    @JsHelper\add_form_validator "#register-form", {
+    -- Provide some CSS for the layout
+    @ViewHelper.css\head src: "/static/css/form_style.css" -- Places <script type="text/javascript" src="..." /> in layout head
+    @ViewHelper.css\head ".panel h1 { color: black; }"     -- Places script block in layout head
+    @ViewHelper.css\inline "#register-form { color: red; }"  -- Caches a style block, rendered at call to @ViewHelper.css\render_inline!
+
+    -- Provide some javascript to be included in the layout (this example implements the jquery.validate library)
+    @ViewHelper.js\add_form_validator "#register-form", {
       username:         { required: true, minlength: 2, maxlength: 25 }
       email:            { required: true, email: true }
       password:         { required: true, minlength: 8 }
@@ -62,7 +67,7 @@ class Index extends Widget
     }
 ```
 
-__views/my_view.moon__: Render the cached javascript blocks in the layout.
+__views/my_view.moon__: Render the cached javascript/css blocks in the layout.
 
 ```moonscript
 import Widget from require "lapis.html"
@@ -79,17 +84,22 @@ class MyView extends Widget
         
         -- and other header stuff...
 
+        raw @ViewHelper.css\head!
+  
       body ->
+        -- Add caches css blocks
+        raw @ViewHelper.css\inline!
+
         -- Insert page's contents from app route and/or the route's associated widget
         @content_for "inner"
 
-        -- Javascript (yea, the helper *could* control this but I haven't needed that yet)
-        script src: "/static/js/jquery-1.10.2.js"
-        script src: "/static/js/bootstrap.js"
-        script src: "/static/js/jquery.validate.min.js"
+        -- You should really put js libraries and linked scripts at the bottom to improve load times
+        -- For example: I use js\head to store <script src=""... /> references, and js\footer to store things like custom jQuery code blocks
+        raw @ViewHelper.js\head!
 
         -- Add cached script blocks
-        raw @JsHelper\footer_scripts!
+        -- For example: Store $(document).ready(...) here to run after jQuery is loaded
+        raw @ViewHelper.js\footer!
 
 ```
 
