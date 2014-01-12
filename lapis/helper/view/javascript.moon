@@ -2,67 +2,72 @@
 import encode from require "cjson"
 import insert, concat from table
 
-make_js_block = (code) ->
-  if type code == "string"
-    return "<script type=\"text/javascript\">#{code}</script>"
+-- If within a lapis development environment, JsHelper can give
+-- warning/error messages to the browser's javascript console
+config = require("lapis.config").get!
+_debug = config._name == "development"
 
-make_onready_block = (snippets) ->
-  if snippets and #snippets > 0
-    code = concat(snippets, "")
-    make_js_block "$(document).ready(function() { #{code} });\n"
+wrap = (code) ->
+  "<script type=\"text/javascript\">#{code}</script>"
 
-class JavascriptHelper
+warn_msg = (msg, data) ->
+  if _debug
+    return wrap "console.log('JsHelper Warning: #{msg} [#{data}]);"
+  else
+    return ""
+
+script_block = (code) ->
+  unless type code == "string"
+    return warn_msg code
+
+  wrap code
+
+script_src = (url) ->
+  unless type url == "string"
+    return warn_msg url
+
+  "<script type=\"text/javascript\" src=\"#{url}\" />"
+
+class JsZone
   new: =>
-    @snippets = {}
-    @on_ready = {}
+    @js = blocks: {}, urls: { libs: {}, others: {} }
 
-  add_snippet: (code) =>
-    if code and type(code) == "string"
-      insert @snippets, code
+  add_block: (code) =>
+    insert @js.blocks, script_block code
 
-  add_on_ready: (code) =>
-    if code and type(code) == "string"
-      insert @on_ready, code
+  add_src: (url) =>
+    insert @js.urls.others, script_src url
 
-  add_form_validator: (selector, rules) =>
-    return unless selector
+  add_lib: (url) =>
+    insert @js.urls.libs, script_src url
 
-    vrules = if rules and type rules == "table"
-        rules
-      else
-        {}
+class JsHelper
+  -- Create the render zones
+  new: =>
+    -- Access these directly if you'd like with @JsHelper.head\foo(...)
+    @head = JsZone!
+    @body = JsZone!
 
-    @add_on_ready "$('#{selector}').validate({
-      rules: #{encode vrules},
-      showErrors: function(errorMap, errorList) {
+  -- Add a script block to the body cache
+  block: (code) =>
+    return unless type code == "string"
+    @body\add_block, code
 
-        /* Clean up any tooltips for valid elements */
-        $.each(this.validElements(), function (index, element) {
-          var $element = $(element);
-          $element.data('title', '')
-            .tooltip('destroy');
-          $element.closest('.input-group').removeClass('has-error').addClass('has-success');
-        });
+  -- Add url to js source (control whether to add to head or body cache with 2nd parameter)
+  src: (url, is_lib = false) =>
+    return unless type url == "string"
 
-        /* Create new tooltips for invalid elements */
-        $.each(errorList, function (index, error) {
-          var $element = $(error.element);
-          $element.tooltip('destroy')
-            .data('title', error.message)
-            .data('container', 'body')
-            .data('placement', 'left')
-            .data('trigger', 'manual')
-            .tooltip()
-            .tooltip('show');
-          $element.closest('.input-group').addClass('has-error');
-        });
-      }
-    });"
+    if is_lib
+      @head\add_src url
+    else
+      @body\add_src url
+
+  -- A lib is just a source file with higher priority (so long as you render the scripts in the proper place within your view)
+  lib: (name, url) =>
+    @src name, url, true
 
   footer_scripts: =>
     blocks = ""
     blocks ..= make_js_block(snip) for snip in *@snippets
-    ready = make_onready_block(@on_ready) or ""
-
-    blocks .. ready
+    blocks
 
