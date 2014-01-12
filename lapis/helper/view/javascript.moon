@@ -1,4 +1,5 @@
 
+import render_html from quire "lapis.html"
 import encode from require "cjson"
 import insert, concat from table
 
@@ -8,7 +9,9 @@ config = require("lapis.config").get!
 _debug = config._name == "development"
 
 wrap = (code) ->
-  "<script type=\"text/javascript\">#{code}</script>"
+  render_html ->
+    script type: "text/javascript", ->
+      code
 
 warn_msg = (msg, data) ->
   if _debug
@@ -26,7 +29,8 @@ script_src = (url) ->
   unless type url == "string"
     return warn_msg url
 
-  "<script type=\"text/javascript\" src=\"#{url}\" />"
+  render_html ->
+    script type: "text/javascript", src: url
 
 class JsZone
   new: =>
@@ -40,6 +44,13 @@ class JsZone
 
   add_lib: (url) =>
     insert @js.urls.libs, script_src url
+
+  render: =>
+    libs = l for l in *@js.urls.libs
+    others = o for o in *@js.urls.others
+    blocks = b for b in *@js.blocks
+
+    "#{libs}\n#{others}\n#{blocks}"
 
 class JsHelper
   -- Create the render zones
@@ -66,8 +77,7 @@ class JsHelper
   lib: (name, url) =>
     @src name, url, true
 
-  footer_scripts: =>
-    blocks = ""
-    blocks ..= make_js_block(snip) for snip in *@snippets
-    blocks
+  -- Shortcut to render all scripts in one shot (rather than accessing @JsHelper.(head|body)\render! directly
+  render: =>
+    @head\render! .. @body\render!
 

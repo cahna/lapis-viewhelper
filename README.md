@@ -53,12 +53,15 @@ class Index extends Widget
               -- ...The form goes here...
 
     -- Provide some CSS for the layout
-    @ViewHelper.css\head src: "/static/css/form_style.css" -- Places <script type="text/javascript" src="..." /> in layout head
-    @ViewHelper.css\head ".panel h1 { color: black; }"     -- Places script block in layout head
-    @ViewHelper.css\inline "#register-form { color: red; }"  -- Caches a style block, rendered at call to @ViewHelper.css\render_inline!
+    @ViewHelper.css\add src: "/static/css/form_style.css" -- Caches a <script type="text/javascript" src="..." />, rendered in @ViewHelper.css\head!
+    @ViewHelper.css\add ".panel h1 { color: black; }"     -- Caches script block, rendered in @ViewHelper.css\head!
+    @ViewHelper.css\block "#register-form { color: red; }"  -- Caches a style block, rendered at call to @ViewHelper.css\body!
 
-    -- Provide some javascript to be included in the layout (this example implements the jquery.validate library)
-    @ViewHelper.js\add_form_validator "#register-form", {
+    -- Provide some javascript to be included in the layout's body
+    @ViewHelper.js\block "var f = document.getElementById('register-form'); console.log(f);"
+
+    -- This example implements the jquery.validate library
+    @ViewHelper.jquery\form_validator "#register-form", {
       username:         { required: true, minlength: 2, maxlength: 25 }
       email:            { required: true, email: true }
       password:         { required: true, minlength: 8 }
@@ -88,19 +91,21 @@ class MyView extends Widget
   
       body ->
         -- Add caches css blocks
-        raw @ViewHelper.css\inline!
+        raw @ViewHelper.css\body!
 
         -- Insert page's contents from app route and/or the route's associated widget
         @content_for "inner"
 
         -- You should really put js libraries and linked scripts at the bottom to improve load times
-        -- For example: I use js\head to store <script src=""... /> references, and js\footer to store things like custom jQuery code blocks
-        raw @ViewHelper.js\head!
+        -- For example: I use js\head to store <script src=""... /> references, and js\body to store things like custom jQuery code blocks
+        -- raw @ViewHelper.js.head\render!
 
         -- Add cached script blocks
         -- For example: Store $(document).ready(...) here to run after jQuery is loaded
-        raw @ViewHelper.js\footer!
+        -- raw @ViewHelper.js.body\render!
 
+        -- Or do the above two steps in one implied shot
+        raw @ViewHelper.js\render!
 ```
 
 ## Status ##
