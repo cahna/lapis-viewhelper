@@ -26,8 +26,7 @@ class JqueryHelper
   -- }
   --
   new: (js_helper, opt = false) =>
-    @js = js_helper
-    @_ready = { code: {}, depends: {} }
+    @js_helper = js_helper
     @include = false
 
     -- Handle extended usage
@@ -52,15 +51,15 @@ class JqueryHelper
 
         @include = tmpl\format version
 
-      @js\lib @include if @include
+      @js_helper\lib @include if @include
 
       if opt.extra and type opt.extra == "table"
-        @js\lib e for e in *opt.extras
+        @js_helper\lib e for e in *opt.extras
 
   -- Wrap a js code snippet with $(document).ready(...) and add to body's js code cache
   ready: (code) =>
     snippet = "$(document).ready(function(){\n#{code}\n});"
-    @js\block snippet
+    @js_helper\block snippet
 
   -- Add form validation with jquery.validator (you must include that library yourself)
   form_validator: (selector, rules) =>

@@ -1,5 +1,5 @@
 
-import render_html from quire "lapis.html"
+import render_html from require "lapis.html"
 import encode from require "cjson"
 import insert, concat from table
 
@@ -9,9 +9,10 @@ config = require("lapis.config").get!
 _debug = config._name == "development"
 
 wrap = (code) ->
-  render_html ->
-    script type: "text/javascript", ->
-      code
+--  return render_html ->
+--    script type: "text/javascript", ->
+--      raw code
+  "<script type=\"text/javascript\">#{code}</script>"
 
 warn_msg = (msg, data) ->
   if _debug
@@ -29,28 +30,30 @@ script_src = (url) ->
   unless type url == "string"
     return warn_msg url
 
-  render_html ->
-    script type: "text/javascript", src: url
+--  render_html ->
+--    script type: "text/javascript", src: url
+
+  "<script src=\"#{url}\" />"
 
 class JsZone
   new: =>
-    @js = blocks: {}, urls: { libs: {}, others: {} }
+    @_js = blocks: {}, urls: { libs: {}, others: {} }
 
   add_block: (code) =>
     insert @js.blocks, script_block code
 
   add_src: (url) =>
-    insert @js.urls.others, script_src url
+    insert @_js.urls.others, script_src url
 
   add_lib: (url) =>
-    insert @js.urls.libs, script_src url
+    insert @_js.urls.libs, script_src url
 
   render: =>
-    libs = l for l in *@js.urls.libs
-    others = o for o in *@js.urls.others
-    blocks = b for b in *@js.blocks
+    libs = concat @_js.urls.libs, "\n"
+    others = concat @_js.urls.others, "\n"
+    blocks = concat @_js.blocks, "\n"
 
-    "#{libs}\n#{others}\n#{blocks}"
+    libs .. others .. blocks
 
 class JsHelper
   -- Create the render zones
@@ -79,5 +82,5 @@ class JsHelper
 
   -- Shortcut to render all scripts in one shot (rather than accessing @JsHelper.(head|body)\render! directly
   render: =>
-    @head\render! .. @body\render!
+    "#{@head\render!}\n#{@body\render!}\n"
 
